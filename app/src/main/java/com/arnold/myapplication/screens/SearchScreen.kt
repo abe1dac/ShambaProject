@@ -1,7 +1,9 @@
 package com.arnold.myapplication.screens
 
+//import DiseaseItem
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -18,92 +20,111 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import com.arnold.myapplication.R
+import com.arnold.myapplication.data.getDiseaseItems
+import com.arnold.myapplication.models.DiseaseItem
+//import com.arnold.myapplication.models.DiseaseItem
+import com.arnold.myapplication.navigation.Screen
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SearchScreen() {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFE0F2F1)) // Light mint green background
-    ) {
-        // Header Section
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(160.dp)
-                .background(
-                    color = Color(0xFF2E7D32), // Deep green
-                    shape = RoundedCornerShape(bottomStart = 32.dp)
+fun SearchScreen(navController: NavController) {
+    Scaffold(
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text("Pest & Disease Info") },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = Color(0xFF2E7D32),
+                    titleContentColor = Color.White
                 )
+            )
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .background(Color(0xFFE0F2F1))
         ) {
-            // White foreground card
-            Card(
+            // Header Card
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(120.dp)
-                    .padding(16.dp)
-                    .shadow(elevation = 8.dp, shape = RoundedCornerShape(16.dp))
-                    .align(Alignment.BottomCenter),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                shape = RoundedCornerShape(16.dp)
+                    .height(160.dp)
+                    .background(
+                        color = Color(0xFF2E7D32),
+                        shape = RoundedCornerShape(bottomStart = 32.dp)
+                    )
             ) {
-                Row(
+                Card(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .fillMaxWidth()
+                        .height(100.dp)
+                        .padding(16.dp)
+                        .shadow(elevation = 8.dp, shape = RoundedCornerShape(16.dp))
+                        .align(Alignment.BottomCenter),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    shape = RoundedCornerShape(16.dp)
                 ) {
-                    // Left side text
-                    Column(
-                        modifier = Modifier.weight(1f)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "Other",
-                            fontSize = 24.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF2E7D32)
-                        )
-                        Text(
-                            text = "pest & diseases",
-                            fontSize = 16.sp,
-                            color = Color.Black
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Other",
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF2E7D32)
+                            )
+                            Text(
+                                text = "pest & diseases",
+                                fontSize = 16.sp,
+                                color = Color.Gray
+                            )
+                        }
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_sprout),
+                            contentDescription = "Plant sprout",
+                            modifier = Modifier.size(60.dp),
+                            contentScale = ContentScale.Fit
                         )
                     }
-
-                    // Right side image
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_sprout), // Replace with your image
-                        contentDescription = "Plant sprout",
-                        modifier = Modifier.size(60.dp),
-                        contentScale = ContentScale.Fit
-                    )
                 }
             }
-        }
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        // Disease List
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(getDiseaseItems()) { disease ->
-                DiseaseCard(disease)
+            // Disease List
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(getDiseaseItems()) { disease ->
+                    DiseaseCard(
+                        disease = disease,
+                        onClick = {
+                            navController.navigate(Screen.Detection.createRoute(disease.id))
+                        }
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-fun DiseaseCard(disease: DiseaseItem) {
+private fun DiseaseCard(disease: DiseaseItem, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(elevation = 4.dp, shape = RoundedCornerShape(12.dp)),
+            .shadow(elevation = 4.dp, shape = RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         shape = RoundedCornerShape(12.dp)
     ) {
@@ -113,7 +134,6 @@ fun DiseaseCard(disease: DiseaseItem) {
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Left side image
             Image(
                 painter = painterResource(id = disease.imageRes),
                 contentDescription = disease.name,
@@ -125,10 +145,7 @@ fun DiseaseCard(disease: DiseaseItem) {
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            // Right side text
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = disease.name,
                     fontSize = 18.sp,
@@ -143,48 +160,4 @@ fun DiseaseCard(disease: DiseaseItem) {
             }
         }
     }
-}
-
-// Data class for disease items
-data class DiseaseItem(
-    val name: String,
-    val affectedPlants: String,
-    val imageRes: Int
-)
-
-// Sample data
-fun getDiseaseItems(): List<DiseaseItem> {
-    return listOf(
-        DiseaseItem(
-            name = "Cinnamon spot Leaf",
-            affectedPlants = "potato, sukuma & spinach",
-            imageRes = R.drawable.leaf1 // Replace with your image
-        ),
-        DiseaseItem(
-            name = "Early Blight",
-            affectedPlants = "tomato, potato",
-            imageRes = R.drawable.leaf1 // Replace with your image
-        ),
-        DiseaseItem(
-            name = "Late Blight",
-            affectedPlants = "tomato, potato",
-            imageRes = R.drawable.leaf1 // Replace with your image
-        ),
-        DiseaseItem(
-            name = "Powdery Mildew",
-            affectedPlants = "cucumber, squash",
-            imageRes = R.drawable.leaf1 // Replace with your image
-        ),
-        DiseaseItem(
-            name = "Powdery Mildew",
-            affectedPlants = "cucumber, squash",
-            imageRes = R.drawable.leaf1 // Replace with your image
-        ),
-        DiseaseItem(
-            name = "Powdery Mildew",
-            affectedPlants = "cucumber, squash",
-            imageRes = R.drawable.leaf1 // Replace with your image
-        )
-
-    )
 }

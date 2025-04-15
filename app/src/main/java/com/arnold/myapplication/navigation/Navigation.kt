@@ -1,5 +1,6 @@
 package com.arnold.myapplication.navigation
 
+import android.R.attr.type
 import android.graphics.Bitmap
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -9,8 +10,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.arnold.myapplication.screens.*
+import androidx.navigation.NavGraphBuilder
+import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import com.arnold.myapplication.screens.*
 
 @Composable
@@ -24,8 +30,28 @@ fun NavigationGraph(navController: NavHostController, modifier: Modifier = Modif
                 }
             )
         }
-        composable(BottomBarScreen.Search.route) { SearchScreen() }
+       // composable(BottomBarScreen.Search.route) { SearchScreen() }
        //composable(BottomBarScreen.Profile.route) { ProfileScreen() }
+
+        composable(BottomBarScreen.Search.route) {
+            SearchScreen(navController = navController)
+        }
+
+        composable(
+            route = Screen.Detection.route,
+            arguments = listOf(
+                navArgument("diseaseId") {
+                    type = NavType.IntType
+                    defaultValue = 0
+                }
+            )
+        ) { backStackEntry ->
+            val diseaseId = backStackEntry.arguments?.getInt("diseaseId") ?: 0
+            DetectionScreen(
+                diseaseId = diseaseId,
+                navController = navController
+            )
+        }
       composable(BottomBarScreen.Profile.route) {
             ProfileScreen(navController)
         }
@@ -43,3 +69,8 @@ fun NavigationGraph(navController: NavHostController, modifier: Modifier = Modif
         }
     }
 }
+
+
+
+
+
