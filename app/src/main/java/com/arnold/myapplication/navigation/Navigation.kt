@@ -18,6 +18,8 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.arnold.myapplication.screens.*
+import java.io.ByteArrayOutputStream
+import kotlin.io.encoding.Base64
 
 @Composable
 fun NavigationGraph(navController: NavHostController, modifier: Modifier = Modifier) {
@@ -55,11 +57,17 @@ fun NavigationGraph(navController: NavHostController, modifier: Modifier = Modif
       composable(BottomBarScreen.Profile.route) {
             ProfileScreen(navController)
         }
+
+        // In your NavHost setup:
         composable(Screen.Camera.route) {
-            CameraScreen { bitmap ->
-                capturedImage = bitmap
-                navController.navigate(Screen.Results.route)
-            }
+            CameraScreen(
+                onImageCaptured = { bitmap ->
+                    // Handle the captured image
+                    navController.navigate(
+                        Screen.Results.route.replace("{bitmap}", bitmap.toString())
+                    )
+                }
+            )
         }
         composable(Screen.Results.route) {
             ResultsScreen(
@@ -71,6 +79,14 @@ fun NavigationGraph(navController: NavHostController, modifier: Modifier = Modif
 }
 
 
+
+// Update the helper function:
+private fun bitmapToBase64(bitmap: Bitmap): String {
+    val byteArrayOutputStream = ByteArrayOutputStream()
+    bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream)
+    val byteArray = byteArrayOutputStream.toByteArray()
+    return android.util.Base64.encodeToString(byteArray, android.util.Base64.DEFAULT)
+}
 
 
 

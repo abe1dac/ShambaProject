@@ -1,68 +1,103 @@
 package com.arnold.myapplication.screens
 
-
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import android.util.Log
+import androidx.camera.view.PreviewView
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Camera
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.camera.core.ImageCapture
-import androidx.camera.core.ImageCaptureException
-import androidx.camera.view.PreviewView
-import androidx.compose.runtime.remember
-import androidx.core.content.ContextCompat
-import java.io.File
-import java.util.logging.Logger
+//import com.arnold.camerax.CameraController
+import com.arnold.myapplication.camerax.CameraController
+import com.arnold.myapplication.permissions.rememberCameraPermissionState
+//import com.arnold.permissions.rememberCameraPermissionState
 
 @Composable
-fun CameraScreen(onImageCaptured: (Bitmap) -> Unit) {
-    // ... your existing CameraScreen implementation
+fun CameraScreen(
+    onImageCaptured: (Bitmap) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val cameraController = remember { CameraController(context, lifecycleOwner) }
+    val hasPermission = rememberCameraPermissionState()
+    var showError by remember { mutableStateOf<String?>(null) }
 
-        val context = LocalContext.current
-        val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(Unit) {
+        onDispose {
+            cameraController.cleanup()
+        }
+    }
 
-        val imageCapture = remember { ImageCapture.Builder().build() }
-
-        Box(modifier = Modifier.fillMaxSize()) {
-            AndroidView(
-                factory = { ctx ->
-                    PreviewView(ctx).apply {
-                        implementationMode = PreviewView.ImplementationMode.COMPATIBLE
-                    }
-                },
-                modifier = Modifier.fillMaxSize()
+    Column(modifier = modifier.fillMaxSize()) {
+        if (showError != null) {
+            Text(
+                text = showError ?: "Unknown error",
+                color = Color.Red,
+                modifier = Modifier.padding(8.dp)
             )
+        }
 
-            Button(
-                onClick = {
-                    val file = File.createTempFile("IMG_", ".jpg", context.cacheDir)
-                    val outputOptions = ImageCapture.OutputFileOptions.Builder(file).build()
-
-                    imageCapture.takePicture(
-                        outputOptions,
-                        ContextCompat.getMainExecutor(context),
-                        object : ImageCapture.OnImageSavedCallback {
-                            override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                                val bitmap = BitmapFactory.decodeFile(file.absolutePath)
-                                onImageCaptured(bitmap)
-                            }
-
-                            override fun onError(exception: ImageCaptureException) {
-                                Logger.getLogger("CameraX").severe("Image capture failed: ${exception.message}")
+        if (hasPermission) {
+            Box(modifier = Modifier.weight(1f)) {
+                AndroidView(
+                    factory = { ctx ->
+                        PreviewView(ctx).apply {
+                            implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+                            cameraController.initializeCamera(this) { error ->
+                                showError = "Camera error: ${error.message}"
                             }
                         }
+                    },
+                    modifier = Modifier.fillMaxSize()
+                )
+
+                FloatingActionButton(
+                    onClick = {
+                        cameraController.captureImage(
+                            onSuccess = { bitmap ->
+                                onImageCaptured(bitmap)
+                            },
+                            onError = { error ->
+                                showError = when (error) {
+                                    CameraController.CameraError.CameraUnavailable ->
+                                        "Camera unavailable"
+                                    CameraController.CameraError.CaptureFailed ->
+                                        "Failed to capture image"
+                                    CameraController.CameraError.ImageProcessingFailed ->
+                                        "Failed to process image"
+                                    is CameraController.CameraError.SystemError ->
+                                        "Error: ${error.exception.message}"
+                                }
+                            }
+                        )
+                    },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 32.dp),
+                    containerColor = MaterialTheme.colorScheme.primary
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Camera,
+                        contentDescription = "Capture image"
                     )
-                },
-                modifier = Modifier.align(Alignment.BottomCenter)
+                }
+            }
+        } else {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
             ) {
-                Text("Capture")
+                Text("Camera permission required")
             }
         }
     }
+}
