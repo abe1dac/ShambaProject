@@ -65,7 +65,7 @@ fun SearchScreen(navController: NavController) {
                         .shadow(elevation = 8.dp, shape = RoundedCornerShape(16.dp))
                         .align(Alignment.BottomCenter),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
-                    shape = RoundedCornerShape(16.dp)
+                    shape = RoundedCornerShape(20.dp)
                 ) {
                     Row(
                         modifier = Modifier
