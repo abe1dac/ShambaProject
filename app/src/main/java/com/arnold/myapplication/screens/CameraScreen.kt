@@ -3,6 +3,7 @@ package com.arnold.myapplication.screens
 import android.graphics.Bitmap
 import android.util.Log
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Camera
@@ -30,6 +31,7 @@ fun CameraScreen(
     val cameraController = remember { CameraController(context, lifecycleOwner) }
     val hasPermission = rememberCameraPermissionState()
     var showError by remember { mutableStateOf<String?>(null) }
+    var isCapturing by remember { mutableStateOf(false) }
 
     DisposableEffect(Unit) {
         onDispose {
@@ -37,36 +39,44 @@ fun CameraScreen(
         }
     }
 
-    Column(modifier = modifier.fillMaxSize()) {
+    Box(modifier = modifier.fillMaxSize()) {
+        // Show error if present
         if (showError != null) {
             Text(
                 text = showError ?: "Unknown error",
                 color = Color.Red,
-                modifier = Modifier.padding(8.dp)
+                modifier = Modifier
+                    .padding(8.dp)
+                    .align(Alignment.TopCenter)
             )
         }
 
         if (hasPermission) {
-            Box(modifier = Modifier.weight(1f)) {
-                AndroidView(
-                    factory = { ctx ->
-                        PreviewView(ctx).apply {
-                            implementationMode = PreviewView.ImplementationMode.COMPATIBLE
-                            cameraController.initializeCamera(this) { error ->
-                                showError = "Camera error: ${error.message}"
-                            }
+            // Camera Preview
+            AndroidView(
+                factory = { ctx ->
+                    PreviewView(ctx).apply {
+                        implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+                        cameraController.initializeCamera(this) { error ->
+                            showError = "Camera error: ${error.message}"
                         }
-                    },
-                    modifier = Modifier.fillMaxSize()
-                )
+                    }
+                },
+                modifier = Modifier.fillMaxSize()
+            )
 
+            // Capture Button (conditionally rendered)
+            if (!isCapturing) {
                 FloatingActionButton(
                     onClick = {
+                        isCapturing = true
                         cameraController.captureImage(
                             onSuccess = { bitmap ->
+                                isCapturing = false
                                 onImageCaptured(bitmap)
                             },
                             onError = { error ->
+                                isCapturing = false
                                 showError = when (error) {
                                     CameraController.CameraError.CameraUnavailable ->
                                         "Camera unavailable"
@@ -92,11 +102,38 @@ fun CameraScreen(
                 }
             }
         } else {
+            // Permission required message
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
                 Text("Camera permission required")
+            }
+        }
+
+        // Full-screen overlay during capture
+        if (isCapturing) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.3f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        strokeWidth = 4.dp,
+                        modifier = Modifier.size(48.dp)
+                    )
+                    Text(
+                        text = "Processing image...😚",
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
             }
         }
     }
