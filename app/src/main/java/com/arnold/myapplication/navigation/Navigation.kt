@@ -22,7 +22,8 @@ import java.io.ByteArrayOutputStream
 import kotlin.io.encoding.Base64
 
 @Composable
-fun NavigationGraph(navController: NavHostController, modifier: Modifier = Modifier) {
+fun NavigationGraph(navController: NavHostController,
+                    modifier: Modifier = Modifier) {
     var capturedImage by remember { mutableStateOf<Bitmap?>(null) }
     NavHost(navController, startDestination = BottomBarScreen.Home.route, modifier = modifier) {
         composable(BottomBarScreen.Home.route) {
@@ -59,12 +60,14 @@ fun NavigationGraph(navController: NavHostController, modifier: Modifier = Modif
         }
 
         // In your NavHost setup:
+
         composable(Screen.Camera.route) {
             CameraScreen(
-                onImageCaptured = { bitmap ->
-                    // Handle the captured image
+                onImageSelected = { bitmap: Bitmap ->
+                    // Explicit Bitmap type declaration
+                    val base64String = bitmapToBase64(bitmap)
                     navController.navigate(
-                        Screen.Results.route.replace("{bitmap}", bitmap.toString())
+                        Screen.Results.route.replace("{imageData}", base64String)
                     )
                 }
             )
