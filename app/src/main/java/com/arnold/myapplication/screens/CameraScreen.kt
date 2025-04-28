@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Camera
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -18,16 +19,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-//import com.arnold.camerax.CameraController
 import com.arnold.myapplication.camerax.CameraController
 import com.arnold.myapplication.camerax.CameraController.CameraError
 import com.arnold.myapplication.permissions.rememberCameraAndStoragePermissionState
 import com.arnold.myapplication.utils.rememberImagePicker
-
-//import com.arnold.myapplication.camerax.rememberImagePicker
-//import com.arnold.myapplication.permissions.rememberCameraPermissionState
-//import com.arnold.permissions.rememberCameraPermissionState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun CameraScreen(
@@ -39,43 +39,68 @@ fun CameraScreen(
     val cameraController = remember { CameraController(context, lifecycleOwner) }
     val hasPermissions = rememberCameraAndStoragePermissionState()
     var showError by remember { mutableStateOf<String?>(null) }
-    var isCapturing by remember { mutableStateOf(false) }
+    var captureState by remember { mutableStateOf<CaptureState>(CaptureState.Idle) }
+    val coroutineScope = rememberCoroutineScope()
 
-    // Image Picker Setup
+    // Image Picker with loading state
     val imagePicker = rememberImagePicker { uri ->
-        try {
-            context.contentResolver.openInputStream(uri)?.use { stream ->
-                val bitmap = BitmapFactory.decodeStream(stream)
-                bitmap?.let(onImageSelected) ?: run {
-                    showError = "Failed to decode image"
+        coroutineScope.launch { // Launch a coroutine here
+            captureState = CaptureState.Uploading
+            try {
+                context.contentResolver.openInputStream(uri)?.use { stream ->
+                    val bitmap = BitmapFactory.decodeStream(stream) // No withContext needed here
+                    bitmap?.let {
+                        onImageSelected(it)
+                        captureState = CaptureState.Success
+                    } ?: run {
+                        showError = "Failed to decode image"
+                        captureState = CaptureState.Idle
+                    }
+                } ?: run {
+                    showError = "Could not open image"
+                    captureState = CaptureState.Idle
                 }
-            } ?: run {
-                showError = "Could not open image file"
+            } catch (e: Exception) {
+                showError = "Error: ${e.message}"
+                captureState = CaptureState.Idle
             }
-        } catch (e: Exception) {
-            showError = "Error loading image: ${e.message}"
         }
     }
 
     Box(modifier = modifier.fillMaxSize()) {
-        // Permission Check
-        if (!hasPermissions) {
-            PermissionRequestScreen()
-            return
+        // Camera Preview (when not uploading)
+        if (captureState !is CaptureState.Uploading && hasPermissions) {
+            AndroidView(
+                factory = { ctx ->
+                    PreviewView(ctx).apply {
+                        implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+                        cameraController.initializeCamera(this) { error ->
+                            showError = "Camera error: ${error.message}"
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxSize()
+            )
         }
 
-        // Camera Preview
-        AndroidView(
-            factory = { ctx ->
-                PreviewView(ctx).apply {
-                    implementationMode = PreviewView.ImplementationMode.COMPATIBLE
-                    cameraController.initializeCamera(this) { error ->
-                        showError = "Camera error: ${error.message}"
-                    }
+        // Loading Overlay
+        when (captureState) {
+            is CaptureState.Capturing -> {
+                FullScreenLoadingIndicator("Capturing image...")
+            }
+            is CaptureState.Uploading -> {
+                FullScreenLoadingIndicator("Processing image...")
+            }
+            is CaptureState.Success -> {
+                // Brief success state before navigation
+                LaunchedEffect(Unit) {
+                    delay(500) // Show success for 0.5s
+                    captureState = CaptureState.Idle
                 }
-            },
-            modifier = Modifier.fillMaxSize()
-        )
+                FullScreenSuccessIndicator()
+            }
+            else -> {}
+        }
 
         // Bottom Controls
         Column(
@@ -94,64 +119,84 @@ fun CameraScreen(
                 )
             }
 
-            // Action Buttons
+            // Action Buttons (disabled during operations)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 // Gallery Button
                 Button(
-                    onClick = { imagePicker.launchGallery() },
+                    onClick = {
+                        if (captureState == CaptureState.Idle) {
+                            imagePicker.launchGallery()
+                        }
+                    },
+                    enabled = captureState == CaptureState.Idle,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(
+                            alpha = if (captureState == CaptureState.Idle) 1f else 0.5f
+                        )
                     ),
                     modifier = Modifier.size(60.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.PhotoLibrary,
-                        contentDescription = "Select from gallery",
-                        modifier = Modifier.size(24.dp)
-                    )
+                    if (captureState is CaptureState.Uploading) {
+                        CircularProgressIndicator(
+                            color = Color.White,
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.PhotoLibrary,
+                            contentDescription = "Gallery",
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
                 }
 
                 // Capture Button
                 Button(
                     onClick = {
-                        if (!isCapturing) {
-                            isCapturing = true
+                        if (captureState == CaptureState.Idle) {
+                            captureState = CaptureState.Capturing
                             cameraController.captureImage(
                                 onSuccess = { bitmap ->
-                                    isCapturing = false
                                     onImageSelected(bitmap)
+                                    captureState = CaptureState.Success
                                 },
                                 onError = { error ->
-                                    isCapturing = false
                                     showError = when (error) {
                                         CameraError.CameraUnavailable -> "Camera unavailable"
                                         else -> "Capture failed"
                                     }
+                                    captureState = CaptureState.Idle
                                 }
                             )
                         }
                     },
+                    enabled = captureState == CaptureState.Idle,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
+                        containerColor = MaterialTheme.colorScheme.primary.copy(
+                            alpha = if (captureState == CaptureState.Idle) 1f else 0.5f
+                        )
                     ),
-                    modifier = Modifier.size(60.dp),
-                    enabled = !isCapturing
+                    modifier = Modifier.size(60.dp)
                 ) {
-                    if (isCapturing) {
-                        CircularProgressIndicator(
-                            color = Color.White,
-                            modifier = Modifier.size(24.dp),
-                            strokeWidth = 3.dp
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.Camera,
-                            contentDescription = "Take photo",
-                            modifier = Modifier.size(24.dp)
-                        )
+                    when (captureState) {
+                        is CaptureState.Capturing -> {
+                            CircularProgressIndicator(
+                                color = Color.White,
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp
+                            )
+                        }
+                        else -> {
+                            Icon(
+                                imageVector = Icons.Default.Camera,
+                                contentDescription = "Capture",
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -159,31 +204,52 @@ fun CameraScreen(
     }
 }
 
+// State Sealed Class
+sealed class CaptureState {
+    object Idle : CaptureState()
+    object Capturing : CaptureState()
+    object Uploading : CaptureState()
+    object Success : CaptureState()
+}
+
+// Loading Components
 @Composable
-fun PermissionRequestScreen() {
-    Column(
+private fun FullScreenLoadingIndicator(text: String) {
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+            .background(Color.Black.copy(alpha = 0.7f)),
+        contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = "Permissions Required",
-            style = MaterialTheme.typography.headlineSmall
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = "Please grant camera and storage permissions in app settings",
-            textAlign = TextAlign.Center
-        )
-        Spacer(modifier = Modifier.height(24.dp))
-        Button(
-            onClick = {
-                // Add intent to open app settings
-            }
-        ) {
-            Text("Open Settings")
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            CircularProgressIndicator(
+                color = Color.White,
+                modifier = Modifier.size(48.dp),
+                strokeWidth = 4.dp
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = text,
+                color = Color.White,
+                fontSize = 18.sp
+            )
         }
+    }
+}
+
+@Composable
+private fun FullScreenSuccessIndicator() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0x8000AA00)), // Semi-transparent green
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.CheckCircle,
+            contentDescription = "Success",
+            tint = Color.White,
+            modifier = Modifier.size(72.dp)
+        )
     }
 }
