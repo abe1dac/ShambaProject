@@ -3,7 +3,8 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
-    id("com.google.devtools.ksp").version("1.9.22-1.0.17") // Consolidated KSP plugin
+    id("com.google.devtools.ksp").version("1.9.22-1.0.17")
+    // Remove the androidx.room plugin - it doesn't exist
 }
 
 android {
@@ -19,15 +20,11 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // Room schema export configuration
-        javaCompileOptions {
-            annotationProcessorOptions {
-                arguments += mapOf(
-                    "room.schemaLocation" to "$projectDir/schemas",
-                    "room.incremental" to "true",
-                    "room.expandProjection" to "true"
-                )
-            }
+        // Room schema export configuration using KSP
+        ksp {
+            arg("room.schemaLocation", "$projectDir/schemas")
+            arg("room.incremental", "true")
+            arg("room.expandProjection", "true")
         }
     }
 
@@ -44,7 +41,7 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-        isCoreLibraryDesugaringEnabled = true // For Java 8+ API support
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -61,7 +58,7 @@ android {
 }
 
 dependencies {
-    // Core Library Desugaring (for Java 8+ APIs)
+    // Core Library Desugaring
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 
     // Core dependencies
@@ -96,7 +93,7 @@ dependencies {
     val room_version = "2.7.1"
     implementation("androidx.room:room-runtime:$room_version")
     implementation("androidx.room:room-ktx:$room_version")
-    ksp("androidx.room:room-compiler:$room_version")
+    ksp("androidx.room:room-compiler:$room_version") // Using KSP for Room
     testImplementation("androidx.room:room-testing:$room_version")
     implementation("androidx.room:room-paging:$room_version")
 

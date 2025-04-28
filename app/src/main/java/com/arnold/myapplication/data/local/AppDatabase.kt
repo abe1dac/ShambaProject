@@ -15,7 +15,7 @@ import com.arnold.myapplication.data.local.dao.DiseaseDao
 @Database(
     entities = [User::class, DiseaseAnalysis::class],
     version = 3,
-    exportSchema = true,  // This is crucial
+    exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
         AutoMigration(from = 2, to = 3)
@@ -23,7 +23,6 @@ import com.arnold.myapplication.data.local.dao.DiseaseDao
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
-    // ... rest of your code ...
     abstract fun userDao(): UserDao
     abstract fun diseaseDao(): DiseaseDao
 
@@ -39,7 +38,9 @@ abstract class AppDatabase : RoomDatabase() {
                     "shambatech_db"
                 )
                     .addCallback(databaseCallback)
-                    .fallbackToDestructiveMigration() // Optional: handles migration failures
+                    // Only use fallbackToDestructiveMigration in development
+                    // Remove it in production and handle migrations properly
+                    .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance
                 instance
