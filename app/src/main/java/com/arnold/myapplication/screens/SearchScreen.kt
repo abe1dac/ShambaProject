@@ -153,6 +153,7 @@ private fun DiseaseCard(disease: DiseaseItem, onClick: () -> Unit) {
                     color = Color(0xFF2E7D32)
                 )
                 Text(
+
                     text = disease.affectedPlants,
                     fontSize = 14.sp,
                     color = Color.Gray

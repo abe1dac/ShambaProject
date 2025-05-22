@@ -12,26 +12,27 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.arnold.myapplication.camerax.CameraController
 import com.arnold.myapplication.camerax.CameraController.CameraError
+import com.arnold.myapplication.ml.Classifier
 import com.arnold.myapplication.permissions.rememberCameraAndStoragePermissionState
 import com.arnold.myapplication.utils.rememberImagePicker
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
 fun CameraScreen(
-    onImageSelected: (Bitmap) -> Unit,
+    onNavigateToResult: (List<Classifier.Result>) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -41,16 +42,21 @@ fun CameraScreen(
     var showError by remember { mutableStateOf<String?>(null) }
     var captureState by remember { mutableStateOf<CaptureState>(CaptureState.Idle) }
     val coroutineScope = rememberCoroutineScope()
+    val classifier = remember { Classifier(context) }
 
     // Image Picker with loading state
     val imagePicker = rememberImagePicker { uri ->
-        coroutineScope.launch { // Launch a coroutine here
+        coroutineScope.launch {
             captureState = CaptureState.Uploading
             try {
                 context.contentResolver.openInputStream(uri)?.use { stream ->
-                    val bitmap = BitmapFactory.decodeStream(stream) // No withContext needed here
+                    val bitmap = BitmapFactory.decodeStream(stream)
                     bitmap?.let {
-                        onImageSelected(it)
+                        //Classify the bitmap and navigate to result screen
+                        Log.d("CameraScreen", "ImagePicker: About to classify bitmap")
+                        val results = classifier.classify(it)
+                        Log.d("CameraScreen", "ImagePicker: Classifier returned ${results.size} results")
+                        onNavigateToResult(results)
                         captureState = CaptureState.Success
                     } ?: run {
                         showError = "Failed to decode image"
@@ -161,8 +167,14 @@ fun CameraScreen(
                             captureState = CaptureState.Capturing
                             cameraController.captureImage(
                                 onSuccess = { bitmap ->
-                                    onImageSelected(bitmap)
-                                    captureState = CaptureState.Success
+                                    coroutineScope.launch {
+                                        Log.d("CameraScreen", "Capture: About to classify bitmap")
+                                        val results = classifier.classify(bitmap)
+                                        Log.d("CameraScreen", "Capture: Classifier returned ${results.size} results")
+                                        //Classify the bitmap and navigate to result screen
+                                        onNavigateToResult(results)
+                                        captureState = CaptureState.Success
+                                    }
                                 },
                                 onError = { error ->
                                     showError = when (error) {

@@ -7,9 +7,9 @@ import java.util.Date
 
 @Entity(tableName = "users")
 data class User(
-    @PrimaryKey
+    @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "user_id")
-    val userId: Long,
+    val userId: Long = 0,
 
     @ColumnInfo(name = "email", index = true)
     val email: String,

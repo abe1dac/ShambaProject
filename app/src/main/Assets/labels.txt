@@ -1,0 +1,4 @@
+0 late Blight
+1 Early Blight
+2 Rust in bin 
+3 Black rot

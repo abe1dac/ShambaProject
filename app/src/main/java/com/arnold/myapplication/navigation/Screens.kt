@@ -7,13 +7,16 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 
 sealed class Screen(val route: String) {
+    object Login:Screen("login")
     object Home : Screen("home")
     object Camera : Screen("camera")
-    object Results : Screen("results")
     object Search : Screen("search")
     object Profile : Screen("profile")
     object Detection : Screen("detection/{diseaseId}") {
         fun createRoute(diseaseId: Int) = "detection/$diseaseId"
+    }
+    object Result : Screen("result/{results}") {
+        fun createRoute(results: String) = "result/$results"
     }
 }
 

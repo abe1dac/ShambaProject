@@ -57,7 +57,7 @@ fun ProfileScreen(navController: NavController? = null) {
         ) {
             // Profile picture
             Image(
-                painter = painterResource(id = R.drawable.profile_placeholder), // Replace with your profile image
+                painter = painterResource(id = R.drawable.leaf1), // Replace with your profile image
                 contentDescription = "Profile picture",
                 modifier = Modifier
                     .size(120.dp)
@@ -69,14 +69,14 @@ fun ProfileScreen(navController: NavController? = null) {
 
             // User name
             Text(
-                text = "Arnold Odwory",
+                text = "User 1",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold
             )
 
             // User email
             Text(
-                text = "arnoldodwory@gmail.com",
+                text = "email@gmail.com",
                 fontSize = 16.sp,
                 color = Color.Gray
             )

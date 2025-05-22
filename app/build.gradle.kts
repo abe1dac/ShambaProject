@@ -1,10 +1,8 @@
-import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
-
 plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android") version "1.9.22"
-    id("com.google.devtools.ksp") version "1.9.22-1.0.16"
-    // Removed the separate compose plugin as it's included in kotlin.android
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.devtools.ksp)
 }
 
 android {
@@ -40,20 +38,12 @@ android {
         isCoreLibraryDesugaringEnabled = true
     }
 
-    kotlin {
-        compilerOptions {
-            languageVersion.set(KotlinVersion.KOTLIN_1_9)
-        }
+    kotlinOptions {
+        jvmTarget = "17"
     }
 
     buildFeatures {
         compose = true
-    }
-
-    composeOptions {
-        // Updated to match Kotlin 1.9.22 - check latest version at:
-        // https://developer.android.com/jetpack/androidx/releases/compose-kotlin
-        kotlinCompilerExtensionVersion = "1.5.10"
     }
 
     packaging {
@@ -71,11 +61,11 @@ android {
 
 dependencies {
     // Core Library Desugaring
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 
     // Core dependencies
-    implementation("androidx.core:core-ktx:1.12.0")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
+    implementation("androidx.core:core-ktx:1.16.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     implementation("androidx.activity:activity-compose:1.8.2")
 
     // Compose BOM (Bill of Materials)
@@ -96,8 +86,8 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:2.7.7")
 
     // Camera
-    implementation("androidx.camera:camera-camera2:1.3.1")
-    implementation("androidx.camera:camera-lifecycle:1.3.1")
+    implementation("androidx.camera:camera-camera2:1.4.2")
+    implementation("androidx.camera:camera-lifecycle:1.4.2")
     implementation("androidx.camera:camera-view:1.3.1")
 
     // TensorFlow Lite

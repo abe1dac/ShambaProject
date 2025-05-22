@@ -32,18 +32,23 @@ import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
+import com.arnold.myapplication.data.local.AppDatabase
 import com.arnold.myapplication.navigation.NavigationGraph
 import com.arnold.myapplication.screens.CameraScreen
 import com.arnold.myapplication.screens.HomeScreen
 import com.arnold.myapplication.screens.ProfileScreen
-import com.arnold.myapplication.screens.ResultsScreen
 import com.arnold.myapplication.screens.SearchScreen
 import java.io.File
 import java.util.logging.Logger
 
 class MainActivity : ComponentActivity() {
+    lateinit var db: AppDatabase
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        db = AppDatabase.getDatabase(this)
+
         setContent {
             MaterialTheme {
                 Surface(
