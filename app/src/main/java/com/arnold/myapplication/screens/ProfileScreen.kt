@@ -57,7 +57,7 @@ fun ProfileScreen(navController: NavController? = null) {
         ) {
             // Profile picture
             Image(
-                painter = painterResource(id = R.drawable.leaf1), // Replace with your profile image
+                painter = painterResource(id = R.drawable.profile), // Replace with your profile image
                 contentDescription = "Profile picture",
                 modifier = Modifier
                     .size(120.dp)

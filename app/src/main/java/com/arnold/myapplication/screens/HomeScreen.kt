@@ -121,7 +121,7 @@ private fun FeaturesCard() {
             FeatureItem(
                 text = "Turn your Android phone into a mobile crop doctor"
             )
-            Spacer(modifier = Modifier.height(12.dp))
+             Spacer(modifier = Modifier.height(12.dp))
             FeatureItem(
                 text = "With just one photo, ShambaTech diagnoses infected crops and offers treatments for any disease"
             )

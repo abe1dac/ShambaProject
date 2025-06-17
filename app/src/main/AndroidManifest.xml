@@ -2,19 +2,52 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-
+    <!-- Permissions -->
+    <!-- Declare CAMERA permission once. It implies the app might use the camera. -->
     <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-feature android:name="android.hardware.camera.any" />
 
-
-    <uses-feature android:name="android.hardware.camera.any" />
-    <uses-feature android:name="android.hardware.camera" />
-
-
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <!-- Storage Permissions:
+         READ_MEDIA_IMAGES is for Android 13 (API 33) and above.
+         READ_EXTERNAL_STORAGE is for older versions.
+         WRITE_EXTERNAL_STORAGE is largely unnecessary for accessing own app files or media store
+         on modern Android versions and has restrictions. Only include if you absolutely need
+         broad write access to shared external storage, which is rare for typical apps.
+         If only picking images, READ permissions are usually sufficient.
+    -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" /> <!-- For Android 13+ -->
+    <!-- For older versions, and still needed on 13+ if you also need to read non-media files
+         or if targeting below 13 primarily.
+         If your app *only* needs to read images/videos/audio, on API 33+ you can potentially
+         remove READ_EXTERNAL_STORAGE if READ_MEDIA_IMAGES/VIDEO/AUDIO cover all your needs.
+         However, for broader compatibility and if you might access other file types or directories,
+         it's often kept.
+    -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <!--
+    Consider if you truly need WRITE_EXTERNAL_STORAGE.
+    For saving images captured by your app, you can use scoped storage (MediaStore API or app-specific directories)
+    which doesn't require this broad permission on newer Android versions.
+    If you do need it for specific legacy reasons or for writing to shared storage on older devices:
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+                     android:maxSdkVersion="28" />  // Max SDK 28, as it's more restricted on 29+
+    -->
+
+
+    <!-- Features -->
+    <!-- Declare that your app uses a camera.
+         android:required="true" means the app cannot be installed on devices without a camera.
+         Set to "false" if the camera is an optional feature.
+    -->
+    <uses-feature android:name="android.hardware.camera" android:required="true" />
+    <!--
+    android.hardware.camera.any indicates the app uses *a* camera, front or back.
+    If you've already declared android.hardware.camera (which implies a back camera by default,
+    or any if a back camera isn't present), camera.any is somewhat redundant but harmless.
+    It's good for clarity if your app can function with either.
+    If you *require* a specific camera (e.g., auto-focus), use more specific feature tags.
+    -->
+    <uses-feature android:name="android.hardware.camera.any" android:required="false" /> <!-- Optional: If any camera is fine and camera feature itself is optional -->
 
 
     <application
@@ -34,10 +67,10 @@
             android:theme="@style/Theme.MyApplication">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- Define other activities, services, broadcast receivers, and providers here -->
     </application>
 
 </manifest>
